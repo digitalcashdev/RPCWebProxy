@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RPC Explorer (mainnet) - Digital Cash</title>
+    <link rel="stylesheet" href="./mvp.css" />
+  </head>
+
+  <body hidden="hidden">
+    <main>
+      <h1>
+        Digital Cash (<code data-id="network"
+          >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code
+        >) RPC Explorer
+      </h1>
+      <form id="rpc-form" onsubmit="submitForm(event)">
+        <label
+          >Method <small>name (string)</small>
+          <input
+            type="text"
+            list="rpc-methods"
+            data-id="rpc"
+            name="rpc"
+            onkeyup="updateCurl(event)"
+            onchange="updateCurl(event)"
+            placeholder="ex: getaddressbalance"
+            required
+          />
+        </label>
+        <datalist id="rpc-methods">
+          <option value="getRawTransaction"></option>
+          <option value="sendRawTransaction"></option>
+        </datalist>
+
+        <label
+          >Params <small>arguments array (json)</small>
+          <textarea
+            data-id="args"
+            name="args"
+            style="width: 100%; box-sizing: border-box"
+            rows="2"
+            onkeyup="updateCurl(event)"
+            onchange="updateCurl(event)"
+            placeholder='ex: [{ "addresses": ["ybLxVb3aspSHFgxM1qTyuBSXnjAqLFEG8P"] }]'
+          ></textarea>
+        </label>
+
+        <label for="http-post-preview"
+          >Preview <small>request (http post)</small>
+        </label>
+        <label style="display: inline-block"
+          ><input
+            type="radio"
+            name="http-post"
+            value="curl"
+            onchange="updateCurl(event)"
+            checked="checked"
+          />
+          curl
+        </label>
+        <label style="display: inline-block"
+          ><input
+            type="radio"
+            name="http-post"
+            value="fetch"
+            onchange="updateCurl(event)"
+          />
+          fetch
+        </label>
+        <textarea
+          data-id="http-post-preview"
+          style="width: 100%; box-sizing: border-box"
+          rows="14"
+          placeholder='ex: curl --fail-with-body http://localhost:19998/ &#10;&#09;--user "$user:$pass" &#10;&#09;-H "Content-Type: application/json" &#10;&#09;--data-binary &apos;{&#10;&#09;&#09;"method": "getaddressbalance", &#10;&#09;&#09;"params": [{ "addresses": ["ybLxVb3aspSHFgxM1qTyuBSXnjAqLFEG8P"] }] &#10;&#09;}&apos;'
+          disabled="disabled"
+        ></textarea>
+
+        <button type="submit">Try it!</button>
+      </form>
+
+      <h2>Output</h2>
+      <pre><code data-id="output">N/A</code></pre>
+    </main>
+
+    <script>
+      let network = "mainnet";
+      // ex: 'https://digitalcash.dev' or '.'
+      let baseUrl = ".";
+
+      // replaced by public-rpcs.json
+      let allowedRPCRequests = ["getrawtransaction", "sendrawtransaction"];
+
+      async function request(rpcname, ...args) {
+        rpcname = rpcname.toLowerCase();
+        let id = Math.random();
+        let body = { id: id, method: rpcname, params: args };
+        let payload = JSON.stringify(body);
+
+        let resp = await fetch(baseUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: payload,
+        });
+
+        let data = await resp.json();
+        if (data.error) {
+          let err = new Error(data.error.message);
+          Object.assign(err, data.error);
+          throw err;
+        }
+
+        let result = data.result || data;
+        return result;
+      }
+
+      function validateRPC(rpcname) {
+        return allowedRPCRequests.includes(rpcname.toLowerCase());
+      }
+
+      function validateArgs(args) {
+        try {
+          JSON.stringify(args);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      async function submitForm(event) {
+        event.preventDefault();
+
+        let rpcname = document.querySelector("[data-id=rpc]").value;
+        let args = JSON.parse(
+          document.querySelector("[data-id=args]").value || "[]",
+        );
+
+        if (!validateRPC(rpcname)) {
+          alert("Invalid RPC method");
+          return;
+        }
+
+        if (!validateArgs(args)) {
+          alert("Invalid arguments");
+          return;
+        }
+
+        let result = await request(rpcname, ...args).catch(function (err) {
+          let data = {
+            message: err.message,
+            code: err.code,
+          };
+          return data;
+        });
+        document.querySelector("[data-id=output]").textContent = JSON.stringify(
+          result,
+          null,
+          2,
+        );
+      }
+
+      function updateCurl(event) {
+        let defaults = { port: "9998" };
+        if (network === "testnet") {
+          defaults = {
+            port: "19998",
+          };
+        }
+        let $rpcMethod = document.querySelector("[data-id=rpc]");
+        let $rpcParams = document.querySelector("[data-id=args]");
+        let rpcParams;
+        try {
+          rpcParams = JSON.parse($rpcParams.value);
+          if (!Array.isArray(rpcParams)) {
+            rpcParams = [$rpcParams.value];
+          }
+        } catch (e) {
+          console.error(e);
+          rpcParams = [];
+        }
+        let opts = Object.assign({}, defaults, {
+          body: {
+            method: $rpcMethod.value,
+            params: rpcParams,
+          },
+          payload: "",
+        });
+        opts.payload = JSON.stringify(opts.body, null, 4);
+
+        let previewType = document.querySelector(
+          "[name=http-post]:checked",
+        ).value;
+        let code = "";
+        if (previewType === "curl") {
+          code = renderCurl(opts);
+        } else {
+          code = renderFetch(opts);
+        }
+        console.log(code);
+        code = code.replace(/\n/, "&#10;");
+        code = code.replace(/\t/, "&#09;");
+        document.querySelector("[data-id=http-post-preview]").innerHTML = code;
+      }
+
+      function renderCurl(opts) {
+        let payload = opts.payload;
+        payload = payload.replace(/^/gm, "    ");
+        //payload = payload.replace(/    /g, "\t");
+        payload = payload.trim();
+        let code = `
+
+curl --fail-with-body http://localhost:${opts.port}/ \\
+    --user "$user:$pass" \\
+    -H "Content-Type: application/json" \\
+    --data-binary '${payload}'
+
+`;
+        code = code.trim();
+        return code;
+      }
+
+      function renderFetch(opts) {
+        let payload = opts.payload.trim();
+        let code = `
+
+let payload = JSON.stringify(${payload});
+let basicAuth = btoa(\`user:pass\`);
+let resp = await fetch("http://localhost:${opts.port}/", {
+    method: "POST",
+    headers: {
+        "Authorization": \`Basic \${basicAuth}\`,
+        "Content-Type": "application/json",
+    },
+    body: payload,
+});
+
+let data = await resp.json();
+if (data.error) {
+    let err = new Error(data.error.message);
+    Object.assign(err, data.error);
+    throw err;
+}
+return data.result;
+
+                `;
+        code = code.trim();
+        return code;
+      }
+
+      async function main() {
+        {
+          let $network = document.querySelector("[data-id=network]");
+
+          // a really good guess
+          //let hostname = document.location.hostname;
+          //let hasTestnetName =
+          //    hostname === "localhost" ||
+          //    hostname.startsWith("trpc.") ||
+          //    hostname.includes("testnet");
+          //if (hasTestnetName) {
+          //    network = "testnet";
+          //}
+          //$network.innerText = network;
+
+          // certainty
+          let resp = await request("getblockchaininfo").catch(function (err) {
+            return { chain: "test" };
+          });
+          if (resp.chain === "test") {
+            network = "testnet";
+          } else {
+            network = "mainnet";
+          }
+          $network.innerText = network;
+
+          document.body.removeAttribute("hidden");
+        }
+
+        {
+          let resp = await fetch(`./public-rpcs.json`);
+          if (!resp.ok) {
+            let msg = `failed to fetch list of public RPCs: ${resp.status} ${resp.statusText}`;
+            window.alert(msg);
+            return;
+          }
+          let data = await resp.json();
+
+          allowedRPCRequests = [];
+          let keys = Object.keys(data.methods);
+          for (key of keys) {
+            let isCommentish = key.includes("/");
+            if (isCommentish) {
+              continue;
+            }
+            allowedRPCRequests.push(key);
+          }
+
+          let optionList = [];
+          for (let rpc of allowedRPCRequests) {
+            optionList.push(`<option value="${rpc}">${rpc}</option>`);
+          }
+          let options = optionList.join("\n");
+
+          let $rpcMethods = document.querySelector("#rpc-methods");
+          $rpcMethods.innerText = "";
+          $rpcMethods.insertAdjacentHTML("afterbegin", options);
+        }
+      }
+      main();
+    </script>
+  </body>
+</html>
