@@ -309,7 +309,6 @@
         } else {
           code = await renderHelp(opts);
         }
-        console.log(code);
         code = code.replace(/\n/, "&#10;");
         code = code.replace(/\t/, "&#09;");
         document.querySelector("[data-id=http-post-preview]").innerHTML = code;
