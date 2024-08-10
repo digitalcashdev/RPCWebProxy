@@ -6,7 +6,7 @@ Web-friendly, CORS-enabled RPC Proxy to the Digital Cash network. \
 - `mainnet`: <https://rpc.digitalcash.dev>
 - `testnet`: <https://trpc.digitalcash.dev>
 
-<kbd><img width="913" alt="screenshot of RPC Proxy + Explorer performing a 'getaddressbalance' request" src="https://github.com/user-attachments/assets/ca352011-7046-40b6-98c9-e5470fe40bba"></kbd>
+<kbd><img width="913" alt="screenshot of RPC Proxy + Explorer performing a 'getaddressbalance' request" src="https://github.com/user-attachments/assets/b2860c24-85db-411c-b2a6-f7001cae49f4"></kbd>
 
 ## How to Self-Host Proxy + Explorer
 
