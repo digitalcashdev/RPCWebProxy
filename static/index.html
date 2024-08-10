@@ -170,6 +170,10 @@
           ></textarea>
 
           <button type="submit">Try it!</button>
+          <br />
+          <small
+            >Share: <a href="/" data-id="share" target="_blank">/</a></small
+          >
         </form>
       </section>
       <br />
@@ -234,34 +238,23 @@
         return result;
       }
 
-      function validateRPC(rpcname) {
-        return allowedRPCRequests.includes(rpcname.toLowerCase());
-      }
-
-      function validateArgs(args) {
-        try {
-          JSON.stringify(args);
-          return true;
-        } catch (e) {
-          return false;
-        }
-      }
-
       async function submitForm(event) {
         event.preventDefault();
 
         let rpcname = document.querySelector("[data-id=rpc]").value;
-        let args = JSON.parse(
-          document.querySelector("[data-id=args]").value || "[]",
-        );
-
-        if (!validateRPC(rpcname)) {
-          alert("Invalid RPC method");
+        rpcname = rpcname.toLowerCase();
+        let isKnownRpc = allowedRPCRequests.includes(rpcname);
+        if (!isKnownRpc) {
+          window.alert(`unknown RPC method '${rpcname}'`);
           return;
         }
 
-        if (!validateArgs(args)) {
-          alert("Invalid arguments");
+        let jsonParams = $("[data-id=args]").value || "[]";
+        let args;
+        try {
+          args = JSON.parse(jsonParams);
+        } catch (e) {
+          window.alert("could not parse RPC Params as JSON array");
           return;
         }
 
@@ -289,15 +282,21 @@
         let $rpcMethod = document.querySelector("[data-id=rpc]");
         let $rpcParams = document.querySelector("[data-id=args]");
         let rpcParams;
-        try {
-          rpcParams = JSON.parse($rpcParams.value);
-          if (!Array.isArray(rpcParams)) {
-            rpcParams = [$rpcParams.value];
+        if ($rpcParams.value) {
+          try {
+            rpcParams = JSON.parse($rpcParams.value);
+            if (!Array.isArray(rpcParams)) {
+              rpcParams = [$rpcParams.value];
+            }
+          } catch (e) {
+            console.error(`parse error details:`);
+            console.error(e);
           }
-        } catch (e) {
-          console.error(e);
+        }
+        if (!rpcParams) {
           rpcParams = [];
         }
+
         let opts = Object.assign({}, defaults, {
           body: {
             method: $rpcMethod.value,
@@ -320,7 +319,20 @@
         }
         code = code.replace(/\n/, "&#10;");
         code = code.replace(/\t/, "&#09;");
+
+        let jsonParams = JSON.stringify(opts.body.params);
         document.querySelector("[data-id=http-post-preview]").innerHTML = code;
+        let rpcUrl = "";
+        let rpcHash = "";
+        if (opts.body.method) {
+          rpcHash = `#?method=${opts.body.method}&params=${jsonParams}&submit`;
+          rpcUrl = `${location.protocol}//${location.host}/${rpcHash}`;
+        } else {
+          rpcUrl = `${location.protocol}//${location.host}/`;
+        }
+        $("[data-id=share]").href = rpcUrl;
+        $("[data-id=share]").innerText = rpcUrl;
+        location.hash = rpcHash;
       }
 
       async function renderHelp(opts) {
@@ -329,12 +341,40 @@
           return code;
         }
 
-        code = await request("help", opts.body.method).catch(function (err) {
-          return { message: `error loading help for ${opts.body.method}` };
-        });
+        code = await debounceFetchHelp(opts);
         helps[opts.body.method] = code;
 
         return code;
+      }
+
+      var debounceFetchHelp = createDebounced(fetchHelp, 100);
+      async function fetchHelp(opts) {
+        let code = await request("help", opts.body.method).catch(
+          function (err) {
+            return { message: `error loading help for ${opts.body.method}` };
+          },
+        );
+        return code;
+      }
+
+      function createDebounced(fn, ms) {
+        let t = { timeout: 0 };
+
+        async function debouncer(...args) {
+          if (t.timeout) {
+            clearTimeout(t.timeout);
+          }
+          await sleep(ms, t);
+          let result = await fn.apply(this, args);
+          return result;
+        }
+
+        return debouncer;
+      }
+      async function sleep(ms, t) {
+        return new Promise(function (resolve) {
+          t.timeout = setTimeout(resolve, ms);
+        });
       }
 
       function renderCurl(opts) {
@@ -440,7 +480,6 @@ return data.result;
               $testnet.removeAttribute("hidden");
             }
           }
-          document.body.removeAttribute("hidden");
         }
 
         {
@@ -473,21 +512,27 @@ return data.result;
           $rpcMethods.insertAdjacentHTML("afterbegin", options);
         }
 
-        await updatePreview();
-
         if (location.hash) {
           let opts = parseHashQuery(location.hash);
-          $("[data-id=rpc]").value = opts.method;
-          $("[data-id=args]").value = JSON.stringify(opts.params);
+          if (opts.method) {
+            $("[data-id=rpc]").value = opts.method;
+          }
+          if (opts.params) {
+            $("[data-id=args]").value = JSON.stringify(opts.params);
+          }
           await updatePreview();
-          if (opts.submit) {
+          if (opts.method && opts.submit) {
             let event = new Event("submit", {
               bubbles: true,
               cancelable: true,
             });
             $("form#rpc-form").dispatchEvent(event);
           }
+        } else {
+          await updatePreview();
         }
+
+        document.body.removeAttribute("hidden");
       }
       main();
     </script>
