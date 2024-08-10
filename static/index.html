@@ -3,90 +3,163 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RPC Explorer (mainnet) - Digital Cash</title>
+    <title>RPC Explorer - Digital Cash</title>
     <link rel="stylesheet" href="./mvp.css" />
+    <style>
+      nav {
+        margin-bottom: 0.3rem;
+      }
+      header {
+        padding-top: 0;
+        padding-bottom: 0.3rem;
+      }
+      main {
+        padding-top: 0;
+      }
+      form {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      hr {
+        margin-top: 1.2em;
+      }
+    </style>
   </head>
 
   <body hidden="hidden">
+    <header>
+      <nav>
+        <a href="./"
+          ><img
+            alt="Digital Cash . dev"
+            src="https://github.com/user-attachments/assets/08cdbc66-58d7-4cc4-8cc2-a246b28cb0e2"
+            height="96"
+        /></a>
+        <h1>RPC Explorer</h1>
+        <ul>
+          <li>
+            <a href="https://github.com/digitalcashdev/rpcproxy" target="_blank"
+              >Git Source ↗</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://docs.dash.org/projects/core/en/stable/docs/api/remote-procedure-call-quick-reference.html"
+              target="_blank"
+              >DCG Docs ↗</a
+            >
+          </li>
+        </ul>
+      </nav>
+    </header>
     <main>
-      <h1>
-        Digital Cash (<code data-id="network"
-          >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code
-        >) RPC Explorer
-      </h1>
-      <form id="rpc-form" onsubmit="submitForm(event)">
-        <label
-          >Method <small>name (string)</small>
-          <input
-            type="text"
-            list="rpc-methods"
-            data-id="rpc"
-            name="rpc"
-            onkeyup="updateCurl(event)"
-            onchange="updateCurl(event)"
-            placeholder="ex: getaddressbalance"
-            required
-          />
-        </label>
-        <datalist id="rpc-methods">
-          <option value="getRawTransaction"></option>
-          <option value="sendRawTransaction"></option>
-        </datalist>
+      <section>
+        <form id="rpc-form" onsubmit="submitForm(event)">
+          <label
+            >Network
+            <small
+              ><code data-id="network"
+                >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code
+              ></small
+            >
+          </label>
+          <label
+            >Method <small>name (string)</small>
+            <input
+              type="text"
+              list="rpc-methods"
+              data-id="rpc"
+              name="rpc"
+              onkeyup="updatePreview(event)"
+              onchange="updatePreview(event)"
+              placeholder="ex: getaddressbalance"
+              required
+            />
+          </label>
+          <datalist id="rpc-methods">
+            <option value="getRawTransaction"></option>
+            <option value="sendRawTransaction"></option>
+          </datalist>
 
-        <label
-          >Params <small>arguments array (json)</small>
+          <label
+            >Params <small>arguments array (json)</small>
+            <textarea
+              data-id="args"
+              name="args"
+              style="width: 100%; box-sizing: border-box"
+              rows="2"
+              onkeyup="updatePreview(event)"
+              onchange="updatePreview(event)"
+              placeholder='ex: [{ "addresses": ["ybLxVb3aspSHFgxM1qTyuBSXnjAqLFEG8P"] }]'
+            ></textarea>
+          </label>
+
+          <label for="http-post-preview"
+            >Preview <small>request (http post)</small>
+          </label>
+          <label style="display: inline-block"
+            ><input
+              type="radio"
+              name="http-post"
+              value="help"
+              onchange="updatePreview(event)"
+              checked="checked"
+            />
+            help
+          </label>
+          <label style="display: inline-block"
+            ><input
+              type="radio"
+              name="http-post"
+              value="curl"
+              onchange="updatePreview(event)"
+            />
+            curl
+          </label>
+          <label style="display: inline-block"
+            ><input
+              type="radio"
+              name="http-post"
+              value="fetch"
+              onchange="updatePreview(event)"
+            />
+            fetch
+          </label>
           <textarea
-            data-id="args"
-            name="args"
+            data-id="http-post-preview"
             style="width: 100%; box-sizing: border-box"
-            rows="2"
-            onkeyup="updateCurl(event)"
-            onchange="updateCurl(event)"
-            placeholder='ex: [{ "addresses": ["ybLxVb3aspSHFgxM1qTyuBSXnjAqLFEG8P"] }]'
+            rows="9"
+            placeholder='ex: curl --fail-with-body http://localhost:19998/ &#10;&#09;--user "$user:$pass" &#10;&#09;-H "Content-Type: application/json" &#10;&#09;--data-binary &apos;{&#10;&#09;&#09;"method": "getaddressbalance", &#10;&#09;&#09;"params": [{ "addresses": ["ybLxVb3aspSHFgxM1qTyuBSXnjAqLFEG8P"] }] &#10;&#09;}&apos;'
+            disabled="disabled"
           ></textarea>
-        </label>
 
-        <label for="http-post-preview"
-          >Preview <small>request (http post)</small>
-        </label>
-        <label style="display: inline-block"
-          ><input
-            type="radio"
-            name="http-post"
-            value="curl"
-            onchange="updateCurl(event)"
-            checked="checked"
-          />
-          curl
-        </label>
-        <label style="display: inline-block"
-          ><input
-            type="radio"
-            name="http-post"
-            value="fetch"
-            onchange="updateCurl(event)"
-          />
-          fetch
-        </label>
-        <textarea
-          data-id="http-post-preview"
-          style="width: 100%; box-sizing: border-box"
-          rows="14"
-          placeholder='ex: curl --fail-with-body http://localhost:19998/ &#10;&#09;--user "$user:$pass" &#10;&#09;-H "Content-Type: application/json" &#10;&#09;--data-binary &apos;{&#10;&#09;&#09;"method": "getaddressbalance", &#10;&#09;&#09;"params": [{ "addresses": ["ybLxVb3aspSHFgxM1qTyuBSXnjAqLFEG8P"] }] &#10;&#09;}&apos;'
-          disabled="disabled"
-        ></textarea>
-
-        <button type="submit">Try it!</button>
-      </form>
-
-      <h2>Output</h2>
-      <pre><code data-id="output">N/A</code></pre>
+          <button type="submit">Try it!</button>
+        </form>
+      </section>
+      <br />
+      <section>
+        <form>
+          <label
+            >Output
+            <pre><code data-id="output">N/A</code></pre>
+          </label>
+        </form>
+      </section>
+      <footer>
+        <hr />
+        <p>
+          © Dash Developers
+          <a href="https://digitalcash.dev" target="_blank">DigitalCash.Dev</a
+          ><br />
+        </p>
+      </footer>
     </main>
 
     <script>
       let network = "mainnet";
       // ex: 'https://digitalcash.dev' or '.'
       let baseUrl = ".";
+      let helps = {};
 
       // replaced by public-rpcs.json
       let allowedRPCRequests = ["getrawtransaction", "sendrawtransaction"];
@@ -161,7 +234,7 @@
         );
       }
 
-      function updateCurl(event) {
+      async function updatePreview(event) {
         let defaults = { port: "9998" };
         if (network === "testnet") {
           defaults = {
@@ -195,13 +268,29 @@
         let code = "";
         if (previewType === "curl") {
           code = renderCurl(opts);
-        } else {
+        } else if (previewType === "fetch") {
           code = renderFetch(opts);
+        } else {
+          code = await renderHelp(opts);
         }
         console.log(code);
         code = code.replace(/\n/, "&#10;");
         code = code.replace(/\t/, "&#09;");
         document.querySelector("[data-id=http-post-preview]").innerHTML = code;
+      }
+
+      async function renderHelp(opts) {
+        let code = helps[opts.body.method];
+        if (code) {
+          return code;
+        }
+
+        code = await request("help", opts.body.method).catch(function (err) {
+          return { message: `error loading help for ${opts.body.method}` };
+        });
+        helps[opts.body.method] = code;
+
+        return code;
       }
 
       function renderCurl(opts) {
@@ -211,12 +300,13 @@
         payload = payload.trim();
         let code = `
 
-curl --fail-with-body http://localhost:${opts.port}/ \\
+# typically http://localhost:${opts.port}/
+curl --fail-with-body https://${window.location.host}/ \\
     --user "$user:$pass" \\
     -H "Content-Type: application/json" \\
     --data-binary '${payload}'
 
-`;
+        `;
         code = code.trim();
         return code;
       }
@@ -225,9 +315,11 @@ curl --fail-with-body http://localhost:${opts.port}/ \\
         let payload = opts.payload.trim();
         let code = `
 
-let payload = JSON.stringify(${payload});
+// typically http://localhost:${opts.port}/
+let baseUrl = "https://${window.location.host}/";
 let basicAuth = btoa(\`user:pass\`);
-let resp = await fetch("http://localhost:${opts.port}/", {
+let payload = JSON.stringify(${payload});
+let resp = await fetch(baseUrl, {
     method: "POST",
     headers: {
         "Authorization": \`Basic \${basicAuth}\`,
@@ -244,7 +336,7 @@ if (data.error) {
 }
 return data.result;
 
-                `;
+        `;
         code = code.trim();
         return code;
       }
@@ -307,6 +399,8 @@ return data.result;
           $rpcMethods.innerText = "";
           $rpcMethods.insertAdjacentHTML("afterbegin", options);
         }
+
+        await updatePreview();
       }
       main();
     </script>
