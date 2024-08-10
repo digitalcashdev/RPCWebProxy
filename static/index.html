@@ -200,6 +200,15 @@
       // replaced by public-rpcs.json
       let allowedRPCRequests = ["getrawtransaction", "sendrawtransaction"];
 
+      // ajquery - still great after all these years!
+      function $(sel, el) {
+        return (el || document).querySelector(sel);
+      }
+
+      function $$(sel, el) {
+        return Array.from((el || document).querySelectorAll(sel));
+      }
+
       async function request(rpcname, ...args) {
         rpcname = rpcname.toLowerCase();
         let id = Math.random();
@@ -376,6 +385,28 @@ return data.result;
         return code;
       }
 
+      function parseHashQuery(locationHash) {
+        let fragment = locationHash.slice(2); // drop leading '#?'
+        if (!fragment) {
+          return null;
+        }
+
+        let queryIter = new URLSearchParams(fragment);
+        let query = Object.fromEntries(queryIter);
+        let method = query.method;
+        let paramsJson = queryIter.get("params");
+        let params;
+        if (paramsJson) {
+          params = JSON.parse(paramsJson);
+        }
+
+        return {
+          method: query.method,
+          params: params,
+          submit: "submit" in query,
+        };
+      }
+
       async function main() {
         {
           let $network = document.querySelector("[data-id=network]");
@@ -443,6 +474,20 @@ return data.result;
         }
 
         await updatePreview();
+
+        if (location.hash) {
+          let opts = parseHashQuery(location.hash);
+          $("[data-id=rpc]").value = opts.method;
+          $("[data-id=args]").value = JSON.stringify(opts.params);
+          await updatePreview();
+          if (opts.submit) {
+            let event = new Event("submit", {
+              bubbles: true,
+              cancelable: true,
+            });
+            $("form#rpc-form").dispatchEvent(event);
+          }
+        }
       }
       main();
     </script>
