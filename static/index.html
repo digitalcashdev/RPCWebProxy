@@ -83,13 +83,13 @@
     <main>
       <section>
         <form id="rpc-form" onsubmit="submitForm(event)">
-          <label
+          <label data-network="testnet" hidden
             >Network
-            <small
-              ><code data-id="network"
-                >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code
-              ></small
-            >
+            <!-- <input type="text" data-id="network" disabled /> -->
+            <br />
+            <pre
+              style="margin: 0; padding: 0"
+            ><code data-id="network" disabled>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code></pre>
           </label>
           <label
             >Method <small>name (string)</small>
@@ -394,6 +394,7 @@ return data.result;
             network = "mainnet";
           }
           $network.innerText = network;
+          $network.value = network;
 
           if (network === "testnet") {
             let $testnets = document.querySelectorAll("[data-network=testnet]");
