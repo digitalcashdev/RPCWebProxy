@@ -37,16 +37,44 @@
         /></a>
         <h1>RPC Explorer</h1>
         <ul>
+          <li data-network="testnet" hidden>
+            <a
+              href="http://faucet.test.dash.crowdnode.io/"
+              target="_blank"
+              title="CrowdNode Faucet"
+              >CN 💸</a
+            >
+          </li>
+          <li data-network="testnet" hidden>
+            <a
+              href="http://faucet.test.dash.crowdnode.io/"
+              target="_blank"
+              title="Dash Core Group Faucet"
+              >DCG 💸</a
+            >
+          </li>
           <li>
-            <a href="https://github.com/digitalcashdev/rpcproxy" target="_blank"
-              >Git Source ↗</a
+            <a
+              href="https://github.com/digitalcashdev/rpcproxy/issues"
+              target="_blank"
+              title="Git Issues"
+              >Bugs 🐛</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/digitalcashdev/rpcproxy"
+              target="_blank"
+              title="Git Source"
+              >Git 📦</a
             >
           </li>
           <li>
             <a
               href="https://docs.dash.org/projects/core/en/stable/docs/api/remote-procedure-call-quick-reference.html"
               target="_blank"
-              >DCG Docs ↗</a
+              title="Dash Core Group Docs"
+              >DCG 📚</a
             >
           </li>
         </ul>
@@ -367,6 +395,12 @@ return data.result;
           }
           $network.innerText = network;
 
+          if (network === "testnet") {
+            let $testnets = document.querySelectorAll("[data-network=testnet]");
+            for ($testnet of $testnets) {
+              $testnet.removeAttribute("hidden");
+            }
+          }
           document.body.removeAttribute("hidden");
         }
 
