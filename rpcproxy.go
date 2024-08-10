@@ -96,26 +96,37 @@ func (p *RPCProxy) AuthAndProxyHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.Copy(w, resp.Body)
 }
 
-func (p *RPCProxy) isPublicMethodAndArg(rpcName string, arg interface{}) bool {
-	argNames, ok := p.AllowedRequests.Methods[rpcName]
+func (p *RPCProxy) isPublicMethodAndArg(rpcName string, firstArgAny interface{}) bool {
+	paramMaps, ok := p.AllowedRequests.Methods[rpcName]
 	if !ok {
 		return false
 	}
 
-	if len(argNames) == 0 {
+	if len(paramMaps) == 0 {
 		return true
 	}
 
-	for argValue, argTypes := range argNames {
-		if argValue != arg {
-			return false
-		}
-		if len(argTypes) == 0 {
-			continue
-		}
+	if len(paramMaps) > 1 {
+		return false // not implemented
 	}
 
-	return true
+	firstArg, ok := firstArgAny.(string)
+	if !ok {
+		return false // not implemented
+	}
+
+	firstSubcommandValuesMap := paramMaps[0]
+	for subcommand, subParamMaps := range firstSubcommandValuesMap {
+		if firstArg == subcommand {
+			return true
+		}
+		if len(subParamMaps) == 0 {
+			continue
+		}
+		return false // not implemented
+	}
+
+	return false
 }
 
 func MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
