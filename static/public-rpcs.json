@@ -62,6 +62,7 @@
         "verifychainlock": [],
         "verifyislock": [],
         "// Generating RPCs": [{ "-": [] }],
+        "generatetoaddress": [],
         "// Mining RPCs": [{ "-": [] }],
         "// Network RPCs": [{ "-": [] }],
         "// Raw Transaction RPCs": [{ "-": [] }],
