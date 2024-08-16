@@ -44,9 +44,10 @@
         "getsuperblockbudget": [],
         "gobject": [
             {
-                "submit": [],
                 "check": [],
-                "get": []
+                "get": [],
+                "list": [],
+                "submit": []
             }
         ],
         "//masternode": [{ "-": [] }],
