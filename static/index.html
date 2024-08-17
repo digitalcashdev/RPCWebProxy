@@ -205,7 +205,13 @@
       let helps = {};
 
       // replaced by public-rpcs.json
-      let allowedRPCRequests = ["getrawtransaction", "sendrawtransaction"];
+      let allowedRPCRequests = [
+        "getrawtransaction",
+        "sendrawtransaction",
+        "gobject list",
+      ];
+
+      let multipleSpacesRe = /\s+/g;
 
       // ajquery - still great after all these years!
       function $(sel, el) {
@@ -244,35 +250,45 @@
       async function submitForm(event) {
         event.preventDefault();
 
-        let rpcname = document.querySelector("[data-id=rpc]").value;
-        rpcname = rpcname.toLowerCase();
-        let isKnownRpc = allowedRPCRequests.includes(rpcname);
-        if (!isKnownRpc) {
-          window.alert(`unknown RPC method '${rpcname}'`);
-          return;
+        let { commandList, method, subcommands, params, paramsError } =
+          normalizeMethodParams(
+            $("[data-id=rpc]").value,
+            $("[data-id=args]").value,
+          );
+
+        if (method !== "help") {
+          let isKnownRpc = allowedRPCRequests.includes(commandList);
+          if (!isKnownRpc) {
+            window.alert(`unknown RPC method '${commandList}'`);
+            return;
+          }
         }
 
-        let jsonParams = $("[data-id=args]").value || "[]";
-        let args;
-        try {
-          args = JSON.parse(jsonParams);
-        } catch (e) {
-          window.alert("could not parse RPC Params as JSON array");
-          return;
+        if (paramsError) {
+          window.alert(
+            `could not parse RPC Params as JSON array:\n${paramsError.message}`,
+          );
         }
 
-        let result = await request(rpcname, ...args).catch(function (err) {
+        let result = await request(method, ...params).catch(function (err) {
           let data = {
-            message: err.message,
             code: err.code,
+            message: err.message,
           };
           return data;
         });
-        document.querySelector("[data-id=output]").textContent = JSON.stringify(
-          result,
-          null,
-          2,
-        );
+        let text = "";
+        let isHelpError = method === "help" && result.message;
+        if (isHelpError) {
+          let subcommandList = subcommands.join(" ");
+          text = `invalid help topic '${subcommandList}'`;
+        } else if (typeof result === "string") {
+          text = result;
+        } else {
+          text = JSON.stringify(result, null, 2);
+        }
+
+        $("[data-id=output]").textContent = text;
       }
 
       async function updatePreview(event) {
@@ -282,28 +298,22 @@
             port: "19998",
           };
         }
-        let $rpcMethod = document.querySelector("[data-id=rpc]");
-        let $rpcParams = document.querySelector("[data-id=args]");
-        let rpcParams;
-        if ($rpcParams.value) {
-          try {
-            rpcParams = JSON.parse($rpcParams.value);
-            if (!Array.isArray(rpcParams)) {
-              rpcParams = [$rpcParams.value];
-            }
-          } catch (e) {
-            console.error(`parse error details:`);
-            console.error(e);
+
+        let { commandList, method, subcommands, params, paramsError } =
+          normalizeMethodParams(
+            $("[data-id=rpc]").value,
+            $("[data-id=args]").value,
+          );
+        console.log({ commandList, method, subcommands, params, paramsError });
+        if (params) {
+          if (!Array.isArray(params)) {
+            params = [$rpcParams.value];
           }
         }
-        if (!rpcParams) {
-          rpcParams = [];
-        }
-
         let opts = Object.assign({}, defaults, {
           body: {
-            method: $rpcMethod.value,
-            params: rpcParams,
+            method: method,
+            params: params,
           },
           payload: "",
         });
@@ -318,17 +328,17 @@
         } else if (previewType === "fetch") {
           code = renderFetch(opts);
         } else {
-          code = await renderHelp(opts);
+          code = await renderHelp(commandList, method, subcommands);
         }
         code = code.replace(/\n/, "&#10;");
         code = code.replace(/\t/, "&#09;");
 
-        let jsonParams = JSON.stringify(opts.body.params);
         document.querySelector("[data-id=http-post-preview]").innerHTML = code;
         let rpcUrl = "";
         let rpcHash = "";
         if (opts.body.method) {
-          rpcHash = `#?method=${opts.body.method}&params=${jsonParams}&submit`;
+          let paramsJson = $("[data-id=args]").value || "[]";
+          rpcHash = `#?method=${commandList}&params=${paramsJson}&submit`;
           rpcUrl = `${location.protocol}//${location.host}/${rpcHash}`;
         } else {
           rpcUrl = `${location.protocol}//${location.host}/`;
@@ -336,27 +346,65 @@
         $("[data-id=share]").href = rpcUrl;
         $("[data-id=share]").innerText = rpcUrl;
         location.hash = rpcHash;
+
+        return true;
       }
 
-      async function renderHelp(opts) {
-        let code = helps[opts.body.method];
+      function normalizeMethodParams(commandList, paramsJson) {
+        if (!paramsJson) {
+          paramsJson = "[]";
+        }
+        commandList = commandList.trim();
+        commandList = commandList.toLowerCase();
+        commandList = commandList.replace(multipleSpacesRe, " ");
+
+        let subcommands = commandList.split(/\s+/);
+        let method = subcommands.shift();
+
+        let params;
+        let paramsError;
+        try {
+          params = JSON.parse(paramsJson);
+        } catch (e) {
+          params = [];
+          paramsError = e;
+        }
+
+        if (method === "help") {
+          params = subcommands;
+        } else {
+          params = subcommands.concat(params);
+        }
+
+        let result = { commandList, subcommands, method, params, paramsError };
+        return result;
+      }
+
+      async function renderHelp(commandList, method, subcommands) {
+        let commands = subcommands.slice(0);
+        if (method === "help") {
+          commandList = subcommands.join();
+        } else {
+          commands.unshift(method);
+        }
+
+        let code = helps[commandList];
         if (code) {
           return code;
         }
 
-        code = await debounceFetchHelp(opts);
-        helps[opts.body.method] = code;
+        code = await debounceFetchHelp(commands);
+        helps[commandList] = code;
 
         return code;
       }
 
-      var debounceFetchHelp = createDebounced(fetchHelp, 100);
-      async function fetchHelp(opts) {
-        let code = await request("help", opts.body.method).catch(
-          function (err) {
-            return { message: `error loading help for ${opts.body.method}` };
-          },
-        );
+      var debounceFetchHelp = createDebounced(fetchHelp, 150);
+      async function fetchHelp(commands) {
+        let code = await request("help", ...commands).catch(function (err) {
+          let commandList = commands.join(" ");
+          return `error loading help for ${commandList}: ${err.message}`;
+        });
         return code;
       }
 
@@ -496,12 +544,23 @@ return data.result;
 
           allowedRPCRequests = [];
           let keys = Object.keys(data.methods);
-          for (key of keys) {
-            let isCommentish = key.includes("/");
+          for (command of keys) {
+            let isCommentish = command.includes("/");
             if (isCommentish) {
               continue;
             }
-            allowedRPCRequests.push(key);
+            allowedRPCRequests.push(command);
+
+            let argsList = data.methods[command];
+            if (argsList.length === 0) {
+              continue;
+            }
+
+            let subcommandsConfig = argsList[0];
+            let subcommands = Object.keys(subcommandsConfig);
+            for (let subcommand of subcommands) {
+              allowedRPCRequests.push(`${command} ${subcommand}`);
+            }
           }
 
           let optionList = [];
