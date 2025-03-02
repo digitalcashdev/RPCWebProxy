@@ -59,7 +59,20 @@
         "// Evolution RPCs": [{ "-": [] }],
         "bls": [],
         "//protx": [{ "-": [] }],
-        "//quorum": [{ "-": [] }],
+        "quorum": [
+            {
+                "list": [],
+                "info": [],
+                "dkgstatus": [],
+                "getdata": [],
+                "getrecsig": [],
+                "listextended": [],
+                "rotationinfo": [],
+                "verify": []
+            }
+        ],
+        "//quorum[regtest].hashrecsigsign,isconflicting": [],
+        "//quorum[masternode].sign,memberof,platformsign,selectquorum": [],
         "verifychainlock": [],
         "verifyislock": [],
         "// Generating RPCs": [{ "-": [] }],
