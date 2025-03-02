@@ -68,6 +68,7 @@
         "// Raw Transaction RPCs": [{ "-": [] }],
         "decoderawtransaction": [],
         "decodescript": [],
+        "getislocks": [],
         "getrawtransaction": [],
         "getrawtransactionmulti": [],
         "gettxchainlocks": [],
