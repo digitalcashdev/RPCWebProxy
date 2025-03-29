@@ -46,7 +46,7 @@ Web-friendly, CORS-enabled RPC Proxy to the Digital Cash network. \
    ./dash-rpcproxy --help
 
    ./dash-rpcproxy --port 8080 --web-root ./my-custom-explorer/ \
-        --rpc-hostname 'localhost' --rpc-port 19998 \
+        --rpc-hostname 'http://localhost:19998' \
         --rpc-username 'user' --rpc-password 'secret'
    ```
 
@@ -82,10 +82,18 @@ Web-friendly, CORS-enabled RPC Proxy to the Digital Cash network. \
 
    ```sh
    sudo env PATH="$PATH" \
-       serviceman add --name "dash-rpcproxy" --system --path="$PATH" -- \
+       serviceman add --name "dash-rpcproxy" --system --path="$PATH" --force -- \
        dash-rpcproxy --port 8080 \
-           --rpc-hostname 'localhost' --rpc-port 19998 \
-           --rpc-username 'user' --rpc-password 'secret'
+           --rpc-url 'http://localhost:9998' \
+           --rpc-username 'user-mainnet' --rpc-password 'secret'
+   ```
+
+   ```sh
+   sudo env PATH="$PATH" \
+       serviceman add --name "dash-rpcproxy-testnet" --system --path="$PATH" --force -- \
+       dash-rpcproxy --port 8081 \
+           --rpc-url 'http://localhost:19998' \
+           --rpc-username 'user-testnet' --rpc-password 'secret'
    ```
 
    (note: this also works with ENVs, see [./example.env](/example.env))
